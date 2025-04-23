@@ -1,0 +1,562 @@
+import 'package:flutter/material.dart';
+import 'dart:async';
+
+void main() {
+  runApp(const LearningApp());
+}
+
+class LearningApp extends StatelessWidget {
+  const LearningApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Learning App',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: const TopicSelectionScreen(),
+    );
+  }
+}
+
+class TopicSelectionScreen extends StatefulWidget {
+  const TopicSelectionScreen({Key? key}) : super(key: key);
+
+  @override
+  _TopicSelectionScreenState createState() => _TopicSelectionScreenState();
+}
+
+class _TopicSelectionScreenState extends State<TopicSelectionScreen> {
+  final TextEditingController _topicController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _topicController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Learn Anything'),
+        elevation: 0,
+      ),
+      body: Container(
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'What do you want to learn today?',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 30),
+              TextFormField(
+                controller: _topicController,
+                decoration: const InputDecoration(
+                  labelText: 'Enter Topic',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.book),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a topic';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    final topic = _topicController.text;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FlashcardScreen(topic: topic),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+                child: const Text(
+                  'Start Learning',
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FlashcardScreen extends StatefulWidget {
+  final String topic;
+
+  const FlashcardScreen({Key? key, required this.topic}) : super(key: key);
+
+  @override
+  _FlashcardScreenState createState() => _FlashcardScreenState();
+}
+
+class _FlashcardScreenState extends State<FlashcardScreen> with SingleTickerProviderStateMixin {
+  int currentIndex = 0;
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+  
+  // In a real app, these would be fetched based on the topic
+  late List<Map<String, String>> flashcards;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _animation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+    
+    // Generate flashcards based on the topic
+    flashcards = generateFlashcards(widget.topic);
+    
+    _animationController.forward();
+  }
+
+  List<Map<String, String>> generateFlashcards(String topic) {
+    // In a real app, you'd fetch these from an API or database
+    // Here we're simulating flashcards based on the topic
+    return [
+      {'title': 'Introduction to $topic', 'content': 'This is an introduction to $topic. It covers the basic concepts and terminology.'},
+      {'title': 'Key Components of $topic', 'content': 'The main components of $topic include theoretical frameworks and practical applications.'},
+      {'title': 'History of $topic', 'content': '$topic has evolved significantly over the years, with major developments in recent decades.'},
+      {'title': 'Applications of $topic', 'content': '$topic is applied in various fields including education, industry, and research.'},
+      {'title': 'Future of $topic', 'content': 'The future of $topic looks promising with advancements in technology and methodology.'},
+      {'title': 'Challenges in $topic', 'content': 'Some challenges in $topic include adaptation to changing environments and maintaining relevance.'},
+      {'title': 'Best Practices in $topic', 'content': 'Following established best practices in $topic ensures consistent and reliable outcomes.'},
+    ];
+  }
+
+  void nextCard() {
+    if (currentIndex < flashcards.length - 1) {
+      _animationController.reverse().then((_) {
+        setState(() {
+          currentIndex++;
+        });
+        _animationController.forward();
+      });
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => QuizScreen(topic: widget.topic),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Learning: ${widget.topic}'),
+      ),
+      body: Container(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Card ${currentIndex + 1} of ${flashcards.length}',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: FadeTransition(
+                opacity: _animation,
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          flashcards[currentIndex]['title']!,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 30),
+                        Text(
+                          flashcards[currentIndex]['content']!,
+                          style: const TextStyle(fontSize: 18),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: nextCard,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              ),
+              child: Text(
+                currentIndex < flashcards.length - 1 ? 'OK' : 'Start Quiz',
+                style: const TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class QuizScreen extends StatefulWidget {
+  final String topic;
+
+  const QuizScreen({Key? key, required this.topic}) : super(key: key);
+
+  @override
+  _QuizScreenState createState() => _QuizScreenState();
+}
+
+class _QuizScreenState extends State<QuizScreen> {
+  int currentQuestionIndex = 0;
+  int score = 0;
+  int timeLeft = 15; // Time in seconds for each question
+  late Timer _timer;
+  bool answerSelected = false;
+  String? selectedAnswer;
+  
+  // In a real app, these would be fetched based on the topic
+  late List<Map<String, dynamic>> questions;
+
+  @override
+  void initState() {
+    super.initState();
+    questions = generateQuestions(widget.topic);
+    startTimer();
+  }
+
+  List<Map<String, dynamic>> generateQuestions(String topic) {
+    // In a real app, you'd fetch these from an API or database
+    return [
+      {
+        'question': 'What is the primary focus of $topic?',
+        'options': ['Theory', 'Practice', 'History', 'Applications'],
+        'answer': 'Applications'
+      },
+      {
+        'question': 'Which field is most closely related to $topic?',
+        'options': ['Science', 'Art', 'Engineering', 'Philosophy'],
+        'answer': 'Science'
+      },
+      {
+        'question': 'What is a key challenge in $topic?',
+        'options': ['Funding', 'Research', 'Implementation', 'Adaptation'],
+        'answer': 'Adaptation'
+      },
+      {
+        'question': 'Who is considered the founder of modern $topic?',
+        'options': ['Einstein', 'Newton', 'Darwin', 'Aristotle'],
+        'answer': 'Newton'
+      },
+      {
+        'question': 'When did $topic become recognized as a distinct field?',
+        'options': ['19th century', '20th century', '21st century', 'Ancient times'],
+        'answer': '20th century'
+      }
+    ];
+  }
+
+  void startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          if (timeLeft > 0) {
+            timeLeft--;
+          } else {
+            moveToNextQuestion();
+          }
+        });
+      }
+    });
+  }
+
+  void checkAnswer(String answer) {
+    setState(() {
+      answerSelected = true;
+      selectedAnswer = answer;
+      if (answer == questions[currentQuestionIndex]['answer']) {
+        score++;
+      }
+    });
+    
+    // Wait a moment to show the result before moving to next question
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        moveToNextQuestion();
+      }
+    });
+  }
+
+  void moveToNextQuestion() {
+    _timer.cancel();
+    if (currentQuestionIndex < questions.length - 1) {
+      setState(() {
+        currentQuestionIndex++;
+        timeLeft = 15;
+        answerSelected = false;
+        selectedAnswer = null;
+      });
+      startTimer();
+    } else {
+      // Quiz completed
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResultScreen(
+            topic: widget.topic,
+            score: score,
+            totalQuestions: questions.length,
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  Color getOptionColor(String option) {
+    if (!answerSelected) return Colors.blue;
+    
+    if (option == questions[currentQuestionIndex]['answer']) {
+      return Colors.green;
+    } else if (option == selectedAnswer) {
+      return Colors.red;
+    } else {
+      return Colors.blue;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Quiz: ${widget.topic}'),
+        automaticallyImplyLeading: false,
+      ),
+      body: Container(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Question ${currentQuestionIndex + 1}/${questions.length}',
+                  style: const TextStyle(fontSize: 18),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: timeLeft < 5 ? Colors.red : Colors.blue,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Text(
+                    'Time: $timeLeft s',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text(
+                  questions[currentQuestionIndex]['question'],
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                itemCount: (questions[currentQuestionIndex]['options'] as List).length,
+                itemBuilder: (context, index) {
+                  final option = questions[currentQuestionIndex]['options'][index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: ElevatedButton(
+                      onPressed: answerSelected ? null : () => checkAnswer(option),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: getOptionColor(option),
+                        padding: const EdgeInsets.all(15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        option,
+                        style: const TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ResultScreen extends StatelessWidget {
+  final String topic;
+  final int score;
+  final int totalQuestions;
+
+  const ResultScreen({
+    Key? key,
+    required this.topic,
+    required this.score,
+    required this.totalQuestions,
+  }) : super(key: key);
+
+  String get feedback {
+    final percentage = (score / totalQuestions) * 100;
+    if (percentage >= 80) {
+      return 'Excellent! You have a strong understanding of $topic.';
+    } else if (percentage >= 60) {
+      return 'Good job! You have a good grasp of $topic but there\'s room for improvement.';
+    } else if (percentage >= 40) {
+      return 'Not bad. You have some understanding of $topic but should review the material.';
+    } else {
+      return 'You might need to study $topic more. Try reviewing the flashcards again.';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final percentage = (score / totalQuestions) * 100;
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Quiz Results'),
+        automaticallyImplyLeading: false,
+      ),
+      body: Container(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(
+              Icons.assessment,
+              size: 80,
+              color: Colors.blue,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Topic: $topic',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 30),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    Text(
+                      'Your Score: $score/$totalQuestions',
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '${percentage.toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: percentage >= 60 ? Colors.green : Colors.red,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      feedback,
+                      style: const TextStyle(fontSize: 18),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 15),
+              ),
+              child: const Text(
+                'Study Another Topic',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
